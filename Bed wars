@@ -1,4 +1,4 @@
--- TOWER DEFENSE SIMULATOR COMPLETE SCRIPT (CodeX/Hydrogen)
+-- BEDWARS COMPLETE SCRIPT (CodeX/Hydrogen)
 -- Password: astro
 
 -- LOGIN GUI
@@ -56,13 +56,12 @@ local function loadMainScript()
     local LocalPlayer = Players.LocalPlayer
     local Camera = workspace.CurrentCamera
     local VirtualUser = game:GetService("VirtualUser")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
     local espEnabled = true
-    local autoDeployEnabled = false
-    local infiniteCashEnabled = false
-    local instantWinEnabled = false
-    local autoSkipEnabled = false
+    local killAuraEnabled = false
+    local flyEnabled = false
+    local autoBridgeEnabled = false
+    local autoBuyEnabled = false
 
     -- FPS BOOSTER
     local function boostFPS()
@@ -81,7 +80,7 @@ local function loadMainScript()
 
     -- GUI
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "TDSGUI"
+    screenGui.Name = "BedwarsGUI"
     screenGui.Parent = game:GetService("CoreGui")
     screenGui.ResetOnSpawn = false
 
@@ -96,7 +95,7 @@ local function loadMainScript()
 
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, 0, 0, 30)
-    title.Text = "TDS | astro"
+    title.Text = "BEDWARS | astro"
     title.TextColor3 = Color3.new(1, 1, 0)
     title.BackgroundTransparency = 1
     title.Parent = mainFrame
@@ -132,118 +131,134 @@ local function loadMainScript()
     end
 
     local espBtn = createButton("EspBtn", 35, "ESP: ON")
-    local deployBtn = createButton("DeployBtn", 75, "AUTO DEPLOY: OFF")
-    local cashBtn = createButton("CashBtn", 115, "INFINITE CASH: OFF")
-    local winBtn = createButton("WinBtn", 155, "INSTANT WIN: OFF")
-    local skipBtn = createButton("SkipBtn", 195, "AUTO SKIP: OFF")
+    local killBtn = createButton("KillBtn", 75, "KILL AURA: OFF")
+    local flyBtn = createButton("FlyBtn", 115, "FLY: OFF")
+    local bridgeBtn = createButton("BridgeBtn", 155, "AUTO BRIDGE: OFF")
+    local buyBtn = createButton("BuyBtn", 195, "AUTO BUY: OFF")
 
     espBtn.BackgroundColor3 = Color3.new(0.2, 0.8, 0.2)
 
-    -- ESP for towers and enemies
+    -- ESP
     local espLabels = {}
     local function updateESP()
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("Model") and (v.Name:find("Enemy") or v.Name:find("Zombie") or v.Name:find("Boss")) then
-                if not espLabels[v] then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                if not espLabels[player] then
                     local label = Instance.new("TextLabel")
-                    label.Size = UDim2.new(0, 100, 0, 20)
+                    label.Size = UDim2.new(0, 120, 0, 22)
                     label.BackgroundColor3 = Color3.new(0, 0, 0)
                     label.BackgroundTransparency = 0.5
                     label.BorderSizePixel = 1
                     label.Parent = screenGui
                     label.Font = Enum.Font.GothamBold
-                    label.TextSize = 12
-                    espLabels[v] = label
+                    label.TextSize = 13
+                    espLabels[player] = label
                 end
-                local label = espLabels[v]
-                if espEnabled and v:FindFirstChild("HumanoidRootPart") then
-                    local rootPos, onScreen = Camera:WorldToViewportPoint(v.HumanoidRootPart.Position)
+                local label = espLabels[player]
+                if espEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    local rootPos, onScreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
                     if onScreen then
                         label.TextColor3 = Color3.new(1, 0, 0)
-                        label.Text = v.Name
-                        label.Position = UDim2.new(0, rootPos.X - 50, 0, rootPos.Y - 30)
+                        label.Text = player.Name
+                        label.Position = UDim2.new(0, rootPos.X - 60, 0, rootPos.Y - 40)
                         label.Visible = true
                     else
                         label.Visible = false
                     end
                 else
-                    label.Visible = false
+                    if label then label.Visible = false end
                 end
             end
         end
     end
 
-    -- AUTO DEPLOY TOWERS
-    local function autoDeploy()
-        if not autoDeployEnabled then return end
+    -- KILL AURA
+    local function killAura()
+        if not killAuraEnabled then return end
         pcall(function()
-            -- Find best tower to deploy
-            local towers = LocalPlayer.Backpack:GetChildren()
-            for _, tower in pairs(towers) do
-                if tower:IsA("Tool") and tower.Name:find("Tower") then
-                    -- Find nearest valid position
-                    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        local mousePos = UserInputService:GetMouseLocation()
-                        VirtualUser:Button1Down(mousePos)
-                        wait(0.05)
-                        VirtualUser:Button1Up(mousePos)
-                    end
+            local char = LocalPlayer.Character
+            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    char.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 4)
+                    VirtualUser:Button1Down(Vector2.new(0,0))
+                    wait(0.01)
+                    VirtualUser:Button1Up(Vector2.new(0,0))
                 end
             end
         end)
     end
 
-    -- INFINITE CASH
-    local function infiniteCash()
-        if not infiniteCashEnabled then return end
+    -- FLY
+    local flying = false
+    local bodyVel = nil
+    local bodyGyro = nil
+    local function enableFly()
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        local hrp = char.HumanoidRootPart
+        if bodyVel then bodyVel:Destroy() end
+        if bodyGyro then bodyGyro:Destroy() end
+        bodyVel = Instance.new("BodyVelocity")
+        bodyVel.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        bodyVel.Velocity = Vector3.new(0, 0, 0)
+        bodyVel.Parent = hrp
+        bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+        bodyGyro.Parent = hrp
+        bodyGyro.CFrame = hrp.CFrame
+    end
+    local function disableFly()
+        if bodyVel then bodyVel:Destroy() end
+        if bodyGyro then bodyGyro:Destroy() end
+        bodyVel = nil
+        bodyGyro = nil
+    end
+
+    UserInputService.InputBegan:Connect(function(input)
+        if not flyEnabled then return end
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        local hrp = char.HumanoidRootPart
+        local speed = 80
+        if input.KeyCode == Enum.KeyCode.W then bodyVel.Velocity = hrp.CFrame.LookVector * speed end
+        if input.KeyCode == Enum.KeyCode.S then bodyVel.Velocity = hrp.CFrame.LookVector * -speed end
+        if input.KeyCode == Enum.KeyCode.A then bodyVel.Velocity = hrp.CFrame.RightVector * -speed end
+        if input.KeyCode == Enum.KeyCode.D then bodyVel.Velocity = hrp.CFrame.RightVector * speed end
+        if input.KeyCode == Enum.KeyCode.Space then bodyVel.Velocity = Vector3.new(0, speed, 0) end
+    end)
+
+    -- AUTO BRIDGE
+    local function autoBridge()
+        if not autoBridgeEnabled then return end
         pcall(function()
-            local stats = LocalPlayer:FindFirstChild("leaderstats")
-            if stats and stats:FindFirstChild("Cash") then
-                stats.Cash.Value = 9999999
-            end
-            -- Fire remote for cash
-            if ReplicatedStorage:FindFirstChild("Remotes") then
-                local cashRemote = ReplicatedStorage.Remotes:FindFirstChild("AddCash")
-                if cashRemote then
-                    cashRemote:FireServer(9999999)
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
+                local ray = Ray.new(hrp.Position, hrp.CFrame.LookVector * 5)
+                local hit = workspace:FindPartOnRay(ray, char)
+                if not hit then
+                    local bridgePart = Instance.new("Part")
+                    bridgePart.Size = Vector3.new(1, 0.2, 1)
+                    bridgePart.Position = hrp.Position + hrp.CFrame.LookVector * 4
+                    bridgePart.BrickColor = BrickColor.new("White")
+                    bridgePart.Parent = workspace
+                    wait(0.1)
                 end
             end
         end)
     end
 
-    -- INSTANT WIN
-    local function instantWin()
-        if not instantWinEnabled then return end
+    -- AUTO BUY (items from shop)
+    local function autoBuy()
+        if not autoBuyEnabled then return end
         pcall(function()
-            -- Kill all enemies instantly
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("Model") and (v.Name:find("Enemy") or v.Name:find("Zombie")) then
-                    if v:FindFirstChild("Humanoid") then
-                        v.Humanoid.Health = 0
-                    end
-                end
-            end
-            -- Skip to last wave
-            if ReplicatedStorage:FindFirstChild("Remotes") then
-                local waveRemote = ReplicatedStorage.Remotes:FindFirstChild("SetWave")
-                if waveRemote then
-                    waveRemote:FireServer(999)
-                end
-            end
-        end)
-    end
-
-    -- AUTO SKIP WAVES
-    local function autoSkip()
-        if not autoSkipEnabled then return end
-        pcall(function()
-            local wave = workspace:FindFirstChild("CurrentWave")
-            if wave and wave.Value then
-                if ReplicatedStorage:FindFirstChild("Remotes") then
-                    local skipRemote = ReplicatedStorage.Remotes:FindFirstChild("SkipWave")
-                    if skipRemote then
-                        skipRemote:FireServer()
+            local shop = workspace:FindFirstChild("Shop")
+            if shop then
+                for _, item in pairs(shop:GetDescendants()) do
+                    if item:IsA("Part") and item.Name:find("Buy") then
+                        fireclickdetector(item:FindFirstChild("ClickDetector"))
+                        wait(0.2)
                     end
                 end
             end
@@ -253,10 +268,9 @@ local function loadMainScript()
     -- MAIN LOOP
     RunService.RenderStepped:Connect(function()
         updateESP()
-        autoDeploy()
-        infiniteCash()
-        instantWin()
-        autoSkip()
+        killAura()
+        autoBridge()
+        autoBuy()
     end)
 
     -- BUTTONS
@@ -271,28 +285,33 @@ local function loadMainScript()
         end
     end)
 
-    deployBtn.Activated:Connect(function()
-        autoDeployEnabled = not autoDeployEnabled
-        deployBtn.Text = autoDeployEnabled and "AUTO DEPLOY: ON" or "AUTO DEPLOY: OFF"
-        deployBtn.BackgroundColor3 = autoDeployEnabled and Color3.new(0.2, 0.8, 0.2) or Color3.new(0.6, 0.2, 0.2)
+    killBtn.Activated:Connect(function()
+        killAuraEnabled = not killAuraEnabled
+        killBtn.Text = killAuraEnabled and "KILL AURA: ON" or "KILL AURA: OFF"
+        killBtn.BackgroundColor3 = killAuraEnabled and Color3.new(0.2, 0.8, 0.2) or Color3.new(0.6, 0.2, 0.2)
     end)
 
-    cashBtn.Activated:Connect(function()
-        infiniteCashEnabled = not infiniteCashEnabled
-        cashBtn.Text = infiniteCashEnabled and "INFINITE CASH: ON" or "INFINITE CASH: OFF"
-        cashBtn.BackgroundColor3 = infiniteCashEnabled and Color3.new(0.2, 0.8, 0.2) or Color3.new(0.6, 0.2, 0.2)
+    flyBtn.Activated:Connect(function()
+        flyEnabled = not flyEnabled
+        flyBtn.Text = flyEnabled and "FLY: ON" or "FLY: OFF"
+        flyBtn.BackgroundColor3 = flyEnabled and Color3.new(0.2, 0.8, 0.2) or Color3.new(0.6, 0.2, 0.2)
+        if flyEnabled then
+            enableFly()
+        else
+            disableFly()
+        end
     end)
 
-    winBtn.Activated:Connect(function()
-        instantWinEnabled = not instantWinEnabled
-        winBtn.Text = instantWinEnabled and "INSTANT WIN: ON" or "INSTANT WIN: OFF"
-        winBtn.BackgroundColor3 = instantWinEnabled and Color3.new(0.2, 0.8, 0.2) or Color3.new(0.6, 0.2, 0.2)
+    bridgeBtn.Activated:Connect(function()
+        autoBridgeEnabled = not autoBridgeEnabled
+        bridgeBtn.Text = autoBridgeEnabled and "AUTO BRIDGE: ON" or "AUTO BRIDGE: OFF"
+        bridgeBtn.BackgroundColor3 = autoBridgeEnabled and Color3.new(0.2, 0.8, 0.2) or Color3.new(0.6, 0.2, 0.2)
     end)
 
-    skipBtn.Activated:Connect(function()
-        autoSkipEnabled = not autoSkipEnabled
-        skipBtn.Text = autoSkipEnabled and "AUTO SKIP: ON" or "AUTO SKIP: OFF"
-        skipBtn.BackgroundColor3 = autoSkipEnabled and Color3.new(0.2, 0.8, 0.2) or Color3.new(0.6, 0.2, 0.2)
+    buyBtn.Activated:Connect(function()
+        autoBuyEnabled = not autoBuyEnabled
+        buyBtn.Text = autoBuyEnabled and "AUTO BUY: ON" or "AUTO BUY: OFF"
+        buyBtn.BackgroundColor3 = autoBuyEnabled and Color3.new(0.2, 0.8, 0.2) or Color3.new(0.6, 0.2, 0.2)
     end)
 
     -- HIDE/SHOW
@@ -347,7 +366,15 @@ local function loadMainScript()
         end
     end)
 
-    print("TDS script loaded. ESP, Auto Deploy, Infinite Cash, Instant Win, Auto Skip.")
+    -- CLEANUP
+    Players.PlayerRemoving:Connect(function(player)
+        if espLabels[player] then
+            espLabels[player]:Destroy()
+            espLabels[player] = nil
+        end
+    end)
+
+    print("Bedwars script loaded. ESP, Kill Aura, Fly, Auto Bridge, Auto Buy. FPS Boost active.")
 end
 
 -- PASSWORD CHECK
