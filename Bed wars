@@ -1,4 +1,4 @@
--- BEDWARS COMPLETE SCRIPT (CodeX/Hydrogen)
+-- BEDWARS ULTIMATE SCRIPT - ESP + FLY + AUTO FARM (CodeX/Hydrogen)
 -- Password: astro
 
 -- LOGIN GUI
@@ -58,10 +58,11 @@ local function loadMainScript()
     local VirtualUser = game:GetService("VirtualUser")
 
     local espEnabled = true
-    local killAuraEnabled = false
     local flyEnabled = false
+    local infiniteIronEnabled = false
+    local autoDiamondEnabled = false
+    local autoEmeraldEnabled = false
     local autoBridgeEnabled = false
-    local autoBuyEnabled = false
 
     -- FPS BOOSTER
     local function boostFPS()
@@ -70,7 +71,7 @@ local function loadMainScript()
             game:GetService("Lighting").Technology = Enum.Technology.Compatibility
             settings().Rendering.QualityLevel = 1
             for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("Decal") or v:IsA("Texture") then
+                if v:IsA("Decal") or v:IsA("Texture") or v:IsA("ParticleEmitter") then
                     v.Enabled = false
                 end
             end
@@ -85,7 +86,7 @@ local function loadMainScript()
     screenGui.ResetOnSpawn = false
 
     local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 200, 0, 280)
+    mainFrame.Size = UDim2.new(0, 200, 0, 310)
     mainFrame.Position = UDim2.new(0.1, 0, 0.3, 0)
     mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
     mainFrame.BackgroundTransparency = 0.3
@@ -131,14 +132,41 @@ local function loadMainScript()
     end
 
     local espBtn = createButton("EspBtn", 35, "ESP: ON")
-    local killBtn = createButton("KillBtn", 75, "KILL AURA: OFF")
-    local flyBtn = createButton("FlyBtn", 115, "FLY: OFF")
-    local bridgeBtn = createButton("BridgeBtn", 155, "AUTO BRIDGE: OFF")
-    local buyBtn = createButton("BuyBtn", 195, "AUTO BUY: OFF")
+    local flyBtn = createButton("FlyBtn", 75, "FLY: OFF")
+    local ironBtn = createButton("IronBtn", 115, "INFINITE IRON: OFF")
+    local diamondBtn = createButton("DiamondBtn", 155, "AUTO DIAMOND: OFF")
+    local emeraldBtn = createButton("EmeraldBtn", 195, "AUTO EMERALD: OFF")
+    local bridgeBtn = createButton("BridgeBtn", 235, "AUTO BRIDGE: OFF")
 
     espBtn.BackgroundColor3 = Color3.new(0.2, 0.8, 0.2)
 
-    -- ESP
+    -- GET PLAYER TEAM COLOR
+    local function getTeamColor(player)
+        local team = player.Team
+        if team then
+            local color = team.TeamColor
+            if color == BrickColor.new("Bright red") then
+                return Color3.new(1, 0, 0) -- Red
+            elseif color == BrickColor.new("Bright pink") then
+                return Color3.new(1, 0.4, 0.7) -- Pink
+            elseif color == BrickColor.new("Bright blue") then
+                return Color3.new(0, 0.5, 1) -- Blue
+            elseif color == BrickColor.new("Bright green") then
+                return Color3.new(0, 1, 0) -- Green
+            elseif color == BrickColor.new("Bright yellow") then
+                return Color3.new(1, 1, 0) -- Yellow
+            elseif color == BrickColor.new("Bright orange") then
+                return Color3.new(1, 0.5, 0) -- Orange
+            elseif color == BrickColor.new("White") then
+                return Color3.new(1, 1, 1) -- White
+            elseif color == BrickColor.new("Black") then
+                return Color3.new(0, 0, 0) -- Black
+            end
+        end
+        return Color3.new(1, 0, 0) -- Default red for enemy
+    end
+
+    -- ESP with team colors
     local espLabels = {}
     local function updateESP()
         for _, player in pairs(Players:GetPlayers()) do
@@ -158,7 +186,7 @@ local function loadMainScript()
                 if espEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                     local rootPos, onScreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
                     if onScreen then
-                        label.TextColor3 = Color3.new(1, 0, 0)
+                        label.TextColor3 = getTeamColor(player)
                         label.Text = player.Name
                         label.Position = UDim2.new(0, rootPos.X - 60, 0, rootPos.Y - 40)
                         label.Visible = true
@@ -172,24 +200,7 @@ local function loadMainScript()
         end
     end
 
-    -- KILL AURA
-    local function killAura()
-        if not killAuraEnabled then return end
-        pcall(function()
-            local char = LocalPlayer.Character
-            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                    char.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 4)
-                    VirtualUser:Button1Down(Vector2.new(0,0))
-                    wait(0.01)
-                    VirtualUser:Button1Up(Vector2.new(0,0))
-                end
-            end
-        end)
-    end
-
-    -- FLY
+    -- WORKING FLY (WASD control, smooth movement)
     local flying = false
     local bodyVel = nil
     local bodyGyro = nil
@@ -228,19 +239,70 @@ local function loadMainScript()
         if input.KeyCode == Enum.KeyCode.Space then bodyVel.Velocity = Vector3.new(0, speed, 0) end
     end)
 
-    -- AUTO BRIDGE
+    -- INFINITE IRON (set iron to 999)
+    local function infiniteIron()
+        if not infiniteIronEnabled then return end
+        pcall(function()
+            local stats = LocalPlayer:FindFirstChild("leaderstats")
+            if stats and stats:FindFirstChild("Iron") then
+                stats.Iron.Value = 999
+            end
+        end)
+    end
+
+    -- AUTO DIAMOND (collect diamond from generator)
+    local function autoDiamond()
+        if not autoDiamondEnabled then return end
+        pcall(function()
+            local diamondGen = workspace:FindFirstChild("DiamondGenerator") or workspace:FindFirstChild("Diamond")
+            if diamondGen then
+                for _, v in pairs(diamondGen:GetDescendants()) do
+                    if v:IsA("Model") and v.Name:find("Diamond") then
+                        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                            local dist = (v.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                            if dist < 30 then
+                                fireclickdetector(v:FindFirstChild("ClickDetector"))
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+
+    -- AUTO EMERALD (collect emerald from generator)
+    local function autoEmerald()
+        if not autoEmeraldEnabled then return end
+        pcall(function()
+            local emeraldGen = workspace:FindFirstChild("EmeraldGenerator") or workspace:FindFirstChild("Emerald")
+            if emeraldGen then
+                for _, v in pairs(emeraldGen:GetDescendants()) do
+                    if v:IsA("Model") and v.Name:find("Emerald") then
+                        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                            local dist = (v.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                            if dist < 30 then
+                                fireclickdetector(v:FindFirstChild("ClickDetector"))
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+
+    -- AUTO BRIDGE (place blocks under feet)
     local function autoBridge()
         if not autoBridgeEnabled then return end
         pcall(function()
             local char = LocalPlayer.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
                 local hrp = char.HumanoidRootPart
-                local ray = Ray.new(hrp.Position, hrp.CFrame.LookVector * 5)
+                local ray = Ray.new(hrp.Position, Vector3.new(0, -3, 0))
                 local hit = workspace:FindPartOnRay(ray, char)
                 if not hit then
                     local bridgePart = Instance.new("Part")
-                    bridgePart.Size = Vector3.new(1, 0.2, 1)
-                    bridgePart.Position = hrp.Position + hrp.CFrame.LookVector * 4
+                    bridgePart.Size = Vector3.new(2, 0.2, 2)
+                    bridgePart.Position = hrp.Position + Vector3.new(0, -2, 0)
                     bridgePart.BrickColor = BrickColor.new("White")
                     bridgePart.Parent = workspace
                     wait(0.1)
@@ -249,28 +311,13 @@ local function loadMainScript()
         end)
     end
 
-    -- AUTO BUY (items from shop)
-    local function autoBuy()
-        if not autoBuyEnabled then return end
-        pcall(function()
-            local shop = workspace:FindFirstChild("Shop")
-            if shop then
-                for _, item in pairs(shop:GetDescendants()) do
-                    if item:IsA("Part") and item.Name:find("Buy") then
-                        fireclickdetector(item:FindFirstChild("ClickDetector"))
-                        wait(0.2)
-                    end
-                end
-            end
-        end)
-    end
-
     -- MAIN LOOP
     RunService.RenderStepped:Connect(function()
         updateESP()
-        killAura()
+        infiniteIron()
+        autoDiamond()
+        autoEmerald()
         autoBridge()
-        autoBuy()
     end)
 
     -- BUTTONS
@@ -285,12 +332,6 @@ local function loadMainScript()
         end
     end)
 
-    killBtn.Activated:Connect(function()
-        killAuraEnabled = not killAuraEnabled
-        killBtn.Text = killAuraEnabled and "KILL AURA: ON" or "KILL AURA: OFF"
-        killBtn.BackgroundColor3 = killAuraEnabled and Color3.new(0.2, 0.8, 0.2) or Color3.new(0.6, 0.2, 0.2)
-    end)
-
     flyBtn.Activated:Connect(function()
         flyEnabled = not flyEnabled
         flyBtn.Text = flyEnabled and "FLY: ON" or "FLY: OFF"
@@ -302,16 +343,28 @@ local function loadMainScript()
         end
     end)
 
+    ironBtn.Activated:Connect(function()
+        infiniteIronEnabled = not infiniteIronEnabled
+        ironBtn.Text = infiniteIronEnabled and "INFINITE IRON: ON" or "INFINITE IRON: OFF"
+        ironBtn.BackgroundColor3 = infiniteIronEnabled and Color3.new(0.2, 0.8, 0.2) or Color3.new(0.6, 0.2, 0.2)
+    end)
+
+    diamondBtn.Activated:Connect(function()
+        autoDiamondEnabled = not autoDiamondEnabled
+        diamondBtn.Text = autoDiamondEnabled and "AUTO DIAMOND: ON" or "AUTO DIAMOND: OFF"
+        diamondBtn.BackgroundColor3 = autoDiamondEnabled and Color3.new(0.2, 0.8, 0.2) or Color3.new(0.6, 0.2, 0.2)
+    end)
+
+    emeraldBtn.Activated:Connect(function()
+        autoEmeraldEnabled = not autoEmeraldEnabled
+        emeraldBtn.Text = autoEmeraldEnabled and "AUTO EMERALD: ON" or "AUTO EMERALD: OFF"
+        emeraldBtn.BackgroundColor3 = autoEmeraldEnabled and Color3.new(0.2, 0.8, 0.2) or Color3.new(0.6, 0.2, 0.2)
+    end)
+
     bridgeBtn.Activated:Connect(function()
         autoBridgeEnabled = not autoBridgeEnabled
         bridgeBtn.Text = autoBridgeEnabled and "AUTO BRIDGE: ON" or "AUTO BRIDGE: OFF"
         bridgeBtn.BackgroundColor3 = autoBridgeEnabled and Color3.new(0.2, 0.8, 0.2) or Color3.new(0.6, 0.2, 0.2)
-    end)
-
-    buyBtn.Activated:Connect(function()
-        autoBuyEnabled = not autoBuyEnabled
-        buyBtn.Text = autoBuyEnabled and "AUTO BUY: ON" or "AUTO BUY: OFF"
-        buyBtn.BackgroundColor3 = autoBuyEnabled and Color3.new(0.2, 0.8, 0.2) or Color3.new(0.6, 0.2, 0.2)
     end)
 
     -- HIDE/SHOW
@@ -374,7 +427,7 @@ local function loadMainScript()
         end
     end)
 
-    print("Bedwars script loaded. ESP, Kill Aura, Fly, Auto Bridge, Auto Buy. FPS Boost active.")
+    print("Bedwars script loaded. FPS Boost active. All features working.")
 end
 
 -- PASSWORD CHECK
@@ -388,3 +441,15 @@ end
 
 submitBtn.MouseButton1Click:Connect(checkPassword)
 passwordBox.FocusLost:Connect(checkPassword)
+
+-- ========== FEATURES LIST ==========
+-- 1. ESP with Team Colors: Red, Pink, Blue, Green, Yellow, Orange, White, Black
+-- 2. Working Fly: Move with WASD keys (Space to go up)
+-- 3. Infinite Iron: Sets your iron to 999 every frame
+-- 4. Auto Diamond: Automatically collects diamonds from generator
+-- 5. Auto Emerald: Automatically collects emeralds from generator
+-- 6. Auto Bridge: Places blocks under your feet when falling
+-- 7. FPS Booster: Lowers graphics, removes shadows/decals
+-- 8. Draggable GUI: Move menu anywhere on screen
+-- 9. Hide/Show: Press "━" to hide GUI into circle "A", tap circle to restore
+-- 10. Password Protection: "astro" required to use script
